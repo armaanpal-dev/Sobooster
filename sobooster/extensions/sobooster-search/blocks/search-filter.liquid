@@ -1,0 +1,66 @@
+{%- comment -%}
+  App block: the full search & filter UI wherever the merchant places it.
+  On a collection page it browses that collection (filters, sorting, cards)
+  unless told otherwise; elsewhere it is a search page.
+{%- endcomment -%}
+{%- liquid
+  assign scope_collection = block.settings.collection.handle
+  if scope_collection == blank and block.settings.use_page_collection and collection
+    assign scope_collection = collection.handle
+  endif
+
+  assign mode = 'search'
+  assign heading = block.settings.heading
+  if scope_collection != blank
+    assign mode = 'collection'
+    if heading == blank
+      assign heading = block.settings.collection.title | default: collection.title
+    endif
+  endif
+-%}
+{%- capture config -%}
+  {%- render 'sobooster-config',
+    scope_collection: scope_collection,
+    mode: mode,
+    heading: heading,
+    selector: blank
+  -%}
+{%- endcapture -%}
+
+<div class="sb-mount" data-sobooster-root data-config="{{ config | strip | escape }}" {{ block.shopify_attributes }}>
+  <noscript>{{ 'search.noscript' | t }} <a href="{{ routes.search_url }}">{{ routes.search_url }}</a></noscript>
+</div>
+{{ 'sobooster.css' | asset_url | stylesheet_tag }}
+{%- comment -%} Deferred, and a no-op when the embed already loaded it on this page. {%- endcomment -%}
+<script src="{{ 'sobooster.js' | asset_url }}" data-sobooster defer></script>
+
+{% schema %}
+{
+  "name": "Search & filters",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "info": "On a collection, leave empty to use the collection title."
+    },
+    {
+      "type": "collection",
+      "id": "collection",
+      "label": "Limit to collection",
+      "info": "Leave empty to search the whole catalogue."
+    },
+    {
+      "type": "checkbox",
+      "id": "use_page_collection",
+      "label": "On collection pages, show only that collection",
+      "default": true
+    },
+    {
+      "type": "paragraph",
+      "content": "Filters, synonyms and product card styling are set in the SoBooster app."
+    }
+  ]
+}
+{% endschema %}

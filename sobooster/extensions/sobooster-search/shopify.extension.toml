@@ -1,0 +1,9 @@
+# SoBooster search & filters: the storefront half of the app.
+# The React UI is built into assets/ by `npm run build:storefront`.
+api_version = "2026-10"
+
+[[extensions]]
+name = "SoBooster search"
+handle = "sobooster-search"
+uid = "2fb09441-b078-9925-38c1-c1678739df6c88bcd1db"
+type = "theme"

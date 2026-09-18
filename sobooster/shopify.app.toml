@@ -1,0 +1,27 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "375680ff39d6524a3be1c1645ea0a0b0"
+application_url = "https://shopify.dev/apps/default-app-home"
+embedded = true
+name = "Sobooster"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+# read_products: the admin Index page scans the catalogue (option names, tags, stock).
+scopes = "read_products"
+
+# The admin pages call the Admin GraphQL API straight from the browser
+# (fetch("shopify:admin/api/graphql.json")); App Bridge authenticates it, so
+# the app needs no backend of its own.
+[access.admin]
+direct_api_mode = "offline"
+embedded_app_direct_api_access = true
+
+[auth]
+redirect_urls = [ "https://shopify.dev/apps/default-app-home/api/auth" ]
+
+[webhooks]
+api_version = "2026-10"
+
+[build]
+automatically_update_urls_on_dev = true

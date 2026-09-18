@@ -1,0 +1,19 @@
+{%- comment -%}
+  JSON config read by assets/sobooster.js (src/storefront/config.ts).
+  Params: scope_collection (handle or blank), mode ("search" | "collection"), heading, selector.
+  "app" is everything configured in the SoBooster admin (Index, Filters,
+  Synonyms, Settings), saved as an app-data metafield on the installation.
+{%- endcomment -%}
+{
+  "collection": {{ scope_collection | default: nil | json }},
+  "mode": {{ mode | default: 'search' | json }},
+  "country": {{ localization.country.iso_code | json }},
+  "language": {{ localization.language.iso_code | json }},
+  "locale": {{ request.locale.iso_code | json }},
+  "rootUrl": {{ routes.root_url | json }},
+  "cartUrl": {{ routes.cart_url | json }},
+  "shopCurrency": {{ shop.currency | json }},
+  "heading": {{ heading | json }},
+  "selector": {{ selector | json }},
+  "app": {{ app.metafields.sobooster.config.value | json }}
+}

@@ -1,0 +1,10 @@
+# Tells Shopify CLI how to run the app during `shopify app dev`. Without it the
+# CLI has nothing to tunnel to and the admin shows Shopify's placeholder page.
+#
+# The CLI injects PORT, SHOPIFY_APP_URL and SHOPIFY_API_KEY; vite.config.ts uses
+# them for the tunnel, HMR and App Bridge. Plain `npm run dev` ignores them.
+roles = ["frontend", "backend"]
+
+[commands]
+dev = "npm run dev:shopify"
+build = "npm run build"

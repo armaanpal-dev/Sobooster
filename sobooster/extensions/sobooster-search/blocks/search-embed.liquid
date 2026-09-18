@@ -1,0 +1,127 @@
+{%- comment -%}
+  App embed: switch on once under Theme settings > App embeds.
+  - Search page and collection pages: the script replaces the theme's results
+    container with SoBooster (filters on the left, cards with Add to cart).
+  - Every page: the theme's header search icon opens SoBooster instant search
+    (suggestions, products, pages). Only a small inline loader runs up front;
+    the full script loads when the shopper hovers, focuses or clicks search.
+{%- endcomment -%}
+{%- liquid
+  assign active = false
+  assign scope_collection = blank
+  assign mode = 'search'
+  assign heading = block.settings.heading
+  if template.name == 'search' and block.settings.on_search
+    assign active = true
+  elsif template.name == 'collection' and block.settings.on_collections and collection
+    assign active = true
+    assign scope_collection = collection.handle
+    assign mode = 'collection'
+    assign heading = collection.title
+  endif
+-%}
+{%- if active -%}
+  <script type="application/json" id="sobooster-embed-config">
+    {%- render 'sobooster-config',
+      scope_collection: scope_collection,
+      mode: mode,
+      heading: heading,
+      selector: block.settings.selector
+    -%}
+  </script>
+  {{ 'sobooster.css' | asset_url | stylesheet_tag }}
+  <script src="{{ 'sobooster.js' | asset_url }}" data-sobooster defer></script>
+{%- endif -%}
+
+{%- if block.settings.instant_search -%}
+  <script type="application/json" id="sobooster-overlay-config">
+    {%- render 'sobooster-config', scope_collection: blank, mode: 'search', heading: blank, selector: blank -%}
+  </script>
+  <script>
+    (function () {
+      var triggers = {{ block.settings.search_triggers | json }};
+      var js = {{ 'sobooster.js' | asset_url | json }};
+      var css = {{ 'sobooster.css' | asset_url | json }};
+      function load() {
+        if (window.__sobooster || document.querySelector('script[data-sobooster]')) return;
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = css;
+        document.head.appendChild(link);
+        var script = document.createElement('script');
+        script.src = js;
+        script.defer = true;
+        script.setAttribute('data-sobooster', '');
+        document.head.appendChild(script);
+      }
+      function trigger(event) {
+        try {
+          return event.target instanceof Element && event.target.closest(triggers);
+        } catch (e) {
+          return null;
+        }
+      }
+      document.addEventListener('pointerover', function (event) { if (trigger(event)) load(); }, { passive: true });
+      document.addEventListener('focusin', function (event) { if (trigger(event)) load(); });
+      document.addEventListener('click', function (event) {
+        if (!trigger(event)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (window.__soboosterOpenSearch) window.__soboosterOpenSearch();
+        else { window.__soboosterPendingOpen = true; load(); }
+      }, true);
+    })();
+  </script>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Search & filters",
+  "target": "body",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "instant_search",
+      "label": "Replace the header search with instant search",
+      "default": true,
+      "info": "The search icon opens SoBooster's suggestions, products and pages."
+    },
+    {
+      "type": "text",
+      "id": "search_triggers",
+      "label": "Search icon (CSS selector)",
+      "default": "details-modal.header__search summary, .header__icon--search, a[href$='/search'], [data-sobooster-search]",
+      "info": "What opens instant search. The default suits Dawn and most Online Store 2.0 themes."
+    },
+    {
+      "type": "checkbox",
+      "id": "on_search",
+      "label": "Replace the search results page",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "on_collections",
+      "label": "Replace collection pages",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Search page heading",
+      "default": "Search"
+    },
+    {
+      "type": "text",
+      "id": "selector",
+      "label": "Results container (CSS selector)",
+      "default": "#MainContent",
+      "info": "The element whose contents SoBooster replaces. #MainContent suits Dawn and most Online Store 2.0 themes; use main for others."
+    },
+    {
+      "type": "paragraph",
+      "content": "Filters, synonyms and product card styling are set in the SoBooster app."
+    }
+  ]
+}
+{% endschema %}

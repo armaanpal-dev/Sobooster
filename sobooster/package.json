@@ -1,0 +1,33 @@
+{
+  "name": "sobooster-search-filter",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:shopify": "node scripts/dev-shopify.mjs",
+    "build": "npm run typecheck && vite build && npm run build:storefront",
+    "build:storefront": "vite build --config vite.storefront.config.ts",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
+    "deploy": "npm run build && shopify app deploy",
+    "generate": "node scripts/generate-products.mjs",
+    "import:shopify": "node scripts/import-shopify-csv.mjs"
+  },
+  "dependencies": {
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router": "^8.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "preact": "^10.29.8",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
+  }
+}
