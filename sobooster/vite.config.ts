@@ -19,7 +19,7 @@ const hmr: HmrOptions | undefined =
 /**
  * Loads App Bridge when running embedded in the Shopify admin. It must be the
  * first script on the page and read the API key from a meta tag before it runs.
- * Without SHOPIFY_API_KEY (plain `npm run dev`, the standalone demo) nothing is added.
+ * Without SHOPIFY_API_KEY (plain `npm run dev`) nothing is added.
  */
 function shopifyAppBridge(apiKey: string | undefined): Plugin {
   return {
@@ -41,9 +41,5 @@ export default defineConfig({
     strictPort: Boolean(process.env.PORT),
     allowedHosts: tunnelHost ? [tunnelHost] : [],
     hmr,
-  },
-  build: {
-    // The product dataset is bundled (~110 kB gzipped of the total); it is the page's content, not bloat.
-    chunkSizeWarningLimit: 700,
   },
 });

@@ -1,21 +1,20 @@
-import { useMemo, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { cardStyleVars } from '../cardStyle';
 import { buildCatalog, CatalogProvider } from '../catalog';
 import { ProductCard } from '../components/ProductCard';
 import type { AppConfig, CardSettings } from '../config/appConfig';
-import { demoCatalog } from '../data/catalog';
 import { SORT_LABELS } from '../lib/sort';
 import { StoreServicesProvider, type StoreServices } from '../services';
 import { SORT_KEYS, type Product } from '../types';
 import type { PageProps } from './AdminApp';
+import { loadPreviewProducts } from './adminApi';
 import { Card, Checkbox, Select, TextField } from './ui';
 
-/** Four representative cards: on sale, sold out, and two regular. */
-function sampleProducts(): Product[] {
-  const all = demoCatalog.products;
+/** Up to four of the shop's products: one on sale, one sold out, the rest regular. */
+function sampleProducts(all: readonly Product[]): Product[] {
   const onSale = all.find((p) => p.availability && p.compare_at_price);
   const soldOut = all.find((p) => !p.availability);
-  const regular = all.filter((p) => p.availability && !p.compare_at_price).slice(0, 2);
+  const regular = all.filter((p) => p !== onSale && p !== soldOut).slice(0, 4 - Number(!!onSale) - Number(!!soldOut));
   return [onSale, ...regular, soldOut].filter((p): p is Product => p !== undefined);
 }
 
@@ -35,7 +34,18 @@ export function SettingsPage({ config, update }: PageProps) {
   const setSection = <K extends 'search' | 'layout' | 'cart'>(key: K, change: Partial<AppConfig[K]>) =>
     update((c) => ({ ...c, [key]: { ...c[key], ...change } }));
 
-  const sample = useMemo(sampleProducts, []);
+  const [storeProducts, setStoreProducts] = useState<Product[] | null>(null);
+  useEffect(() => {
+    let active = true;
+    loadPreviewProducts()
+      .then((products) => active && setStoreProducts(products))
+      .catch(() => active && setStoreProducts([]));
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const sample = useMemo(() => sampleProducts(storeProducts ?? []), [storeProducts]);
   const previewCatalog = useMemo(() => buildCatalog(sample, config), [sample, config]);
   const previewGrid = { gridTemplateColumns: `repeat(${Math.min(cards.columnsDesktop, 4)}, minmax(0, 1fr))` } as CSSProperties;
 
@@ -153,6 +163,8 @@ export function SettingsPage({ config, update }: PageProps) {
               <StoreServicesProvider value={previewServices}>
                 <div className="sb-root sb-admin__preview">
                   <div className={`sb-page sb-cards--${cards.textAlign}`} style={cardStyleVars(cards)}>
+                    {storeProducts === null && <p>Loading products…</p>}
+                    {storeProducts !== null && sample.length === 0 && <p>Add an active product to your store to see the preview.</p>}
                     <ul className="sb-grid" style={previewGrid}>
                       {sample.map((product) => (
                         <li key={product.id}>

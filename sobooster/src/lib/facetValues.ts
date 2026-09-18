@@ -10,7 +10,7 @@ function optionValues(product: Product, option: string): readonly string[] {
   const name = option.trim().toLowerCase();
   const fromOptions = product.options?.[name] ?? (COLOR_NAMES.has(name) ? (product.options?.color ?? product.options?.colour) : undefined);
   if (fromOptions) return fromOptions;
-  // The demo dataset carries colour and size as plain fields.
+  // Fall back to the plain colour and size fields.
   if (COLOR_NAMES.has(name)) return product.color;
   if (name === 'size') return product.size;
   return [];

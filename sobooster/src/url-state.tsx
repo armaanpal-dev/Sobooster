@@ -2,8 +2,8 @@ import { createContext, useContext, useMemo, useSyncExternalStore, type ReactNod
 
 /**
  * Where search/filter/sort state lives: the page URL. Components read and
- * write it through this interface, so the same UI runs under react-router
- * (standalone demo) and on a Shopify storefront page (plain History API).
+ * write it through this interface; on a storefront it's backed by the plain
+ * History API.
  */
 export interface UrlState {
   /** Query string without the leading "?". */

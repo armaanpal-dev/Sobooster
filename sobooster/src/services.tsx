@@ -13,9 +13,9 @@ export interface VariantChoice {
 }
 
 /**
- * Capabilities that only exist on a real storefront. The standalone demo
- * provides none, and the UI simply leaves out Add to cart and falls back to
- * "popular products" for recommendations.
+ * Storefront capabilities. Any that are missing (as in the admin preview)
+ * are left out of the UI: no Add to cart, and "popular products" for
+ * recommendations.
  */
 export interface StoreServices {
   /** Adds one unit of a variant; resolves when the cart has been updated. */

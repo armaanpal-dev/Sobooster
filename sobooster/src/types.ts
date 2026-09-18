@@ -13,7 +13,7 @@ export interface Product {
   image: string;
   /**
    * Every collection the product is in. Shopify products can sit in several;
-   * when absent (the demo dataset) the single `collection` is used.
+   * when absent the single `collection` is used.
    */
   collections?: string[];
   /** Product page URL, when running on a storefront. */

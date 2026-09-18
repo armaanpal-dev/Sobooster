@@ -14,15 +14,13 @@ import { availableSorts } from './lib/sort';
 import { countActiveFilters } from './lib/url';
 
 interface Props {
-  /** Shown beside the search box: the demo's brand link, or a storefront heading. */
+  /** Shown beside the search box, e.g. a storefront heading. */
   masthead?: ReactNode;
-  /** Standalone demo pins the search bar; on a storefront the theme owns the header. */
-  stickyMasthead?: boolean;
   /** Collection pages browse rather than search: no search box, no recommendations. */
   mode?: 'search' | 'collection';
 }
 
-export function App({ masthead, stickyMasthead = false, mode = 'search' }: Props) {
+export function App({ masthead, mode = 'search' }: Props) {
   const { products, facets, facetValues, config } = useCatalog();
   const view = useProductQuery();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -48,7 +46,7 @@ export function App({ masthead, stickyMasthead = false, mode = 'search' }: Props
   return (
     <div className={`sb-page sb-page--${mode} sb-cards--${config.cards.textAlign}`} style={style}>
       {(showSearch || masthead) && (
-        <header className={stickyMasthead ? 'sb-masthead sb-masthead--sticky' : 'sb-masthead'}>
+        <header className="sb-masthead">
           {masthead}
           {showSearch && (
             <SearchBar

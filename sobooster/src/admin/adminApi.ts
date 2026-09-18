@@ -1,4 +1,5 @@
 import { normalizeAppConfig, type AppConfig } from '../config/appConfig';
+import type { Product } from '../types';
 
 /**
  * Admin GraphQL from the browser via Direct API access: App Bridge
@@ -159,4 +160,64 @@ export async function scanCatalog(): Promise<CatalogScan> {
     options: [...options.values()].sort((a, b) => b.products - a.products),
     tagPrefixes: [...prefixes].map(([prefix, products]) => ({ prefix, products })).sort((a, b) => b.products - a.products),
   };
+}
+
+interface PreviewNode {
+  legacyResourceId: string;
+  title: string;
+  handle: string;
+  vendor: string;
+  productType: string;
+  tags: string[];
+  totalInventory: number | null;
+  tracksInventory: boolean;
+  featuredMedia: { preview: { image: { url: string } | null } | null } | null;
+  priceRangeV2: { minVariantPrice: { amount: string } };
+  compareAtPriceRange: { maxVariantCompareAtPrice: { amount: string } } | null;
+  hasOnlyDefaultVariant: boolean;
+  collections: { nodes: { title: string }[] };
+  options: { name: string; values: string[] }[];
+}
+
+/** A handful of the shop's active products, for the Settings card preview. */
+export async function loadPreviewProducts(): Promise<Product[]> {
+  const data = await adminGraphql<{ products: { nodes: PreviewNode[] } }>(
+    `query PreviewProducts {
+      products(first: 20, query: "status:active", sortKey: UPDATED_AT, reverse: true) {
+        nodes {
+          legacyResourceId title handle vendor productType tags totalInventory tracksInventory hasOnlyDefaultVariant
+          featuredMedia { preview { image { url(transform: { maxWidth: 600 }) } } }
+          priceRangeV2 { minVariantPrice { amount } }
+          compareAtPriceRange { maxVariantCompareAtPrice { amount } }
+          collections(first: 5) { nodes { title } }
+          options { name values }
+        }
+      }
+    }`,
+  );
+  return data.products.nodes.map((node) => {
+    const price = Number(node.priceRangeV2.minVariantPrice.amount);
+    const compareAt = Number(node.compareAtPriceRange?.maxVariantCompareAtPrice.amount ?? 0);
+    const options: Record<string, string[]> = {};
+    for (const option of node.options) options[option.name.trim().toLowerCase()] = option.values;
+    const collections = node.collections.nodes.map((c) => c.title);
+    return {
+      id: Number(node.legacyResourceId),
+      title: node.title,
+      handle: node.handle,
+      price,
+      compare_at_price: compareAt > price ? compareAt : undefined,
+      vendor: node.vendor,
+      product_type: node.productType,
+      collection: collections[0] ?? '',
+      collections,
+      color: options.color ?? options.colour ?? [],
+      size: options.size ?? [],
+      availability: !node.tracksInventory || (node.totalInventory ?? 0) > 0,
+      tags: node.tags,
+      image: node.featuredMedia?.preview?.image?.url ?? '',
+      options,
+      singleVariant: node.hasOnlyDefaultVariant,
+    };
+  });
 }

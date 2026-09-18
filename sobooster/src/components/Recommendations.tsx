@@ -13,7 +13,7 @@ interface Props {
 /**
  * "You may also like": Shopify's related-product recommendations for the top
  * result, topped up with popular (best-selling, in-stock) products. With no
- * results, or no recommendations service (the demo), it shows popular products.
+ * results, or no recommendations service, it shows popular products.
  */
 export function Recommendations({ results, heading }: Props) {
   const { products, config } = useCatalog();

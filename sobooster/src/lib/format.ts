@@ -1,4 +1,4 @@
-// Demo default (the brief's examples are in dollars); storefronts call configureCurrency.
+// Default until configureCurrency is called with the shop's currency.
 let currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
 /** On a storefront, prices are formatted in the shopper's currency and locale. */
