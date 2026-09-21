@@ -1,3 +1,4 @@
+import type { CartSettings } from '../config/appConfig';
 import type { PageLink, StoreServices, VariantChoice } from '../services';
 import type { Product } from '../types';
 
@@ -12,7 +13,7 @@ import type { Product } from '../types';
 interface Options {
   rootUrl: string;
   cartUrl: string;
-  afterAdd: 'notify' | 'cart';
+  cart: CartSettings;
 }
 
 /**
@@ -74,6 +75,53 @@ function dispatchStandardCartEvent(variantId: number, cart: AjaxCart) {
   document.dispatchEvent(event);
 }
 
+/**
+ * Horizon's drawer opens itself on the standard cart event, but only when it
+ * carries the `auto-open` attribute (the theme's "Auto-open cart drawer"
+ * setting). It reads the attribute synchronously, so it is set just for the
+ * dispatch. Returns the drawer if this theme has one.
+ */
+function withHorizonAutoOpen(open: boolean, dispatch: () => void): boolean {
+  const drawer = document.querySelector('cart-drawer-component');
+  const added = open && drawer !== null && !drawer.hasAttribute('auto-open');
+  if (added) drawer.setAttribute('auto-open', '');
+  try {
+    dispatch();
+  } finally {
+    if (added) drawer.removeAttribute('auto-open');
+  }
+  return drawer !== null;
+}
+
+/**
+ * Themes without Horizon's drawer:
+ * - Dawn and its family (Sense, Craft, Refresh, Studio…): <cart-drawer> has a public open().
+ * - The merchant's selector from Settings, for any theme whose cart icon opens a drawer.
+ * - A cart toggle button that declares the drawer it controls. Only buttons are
+ *   clicked automatically, because clicking a cart link would leave the page.
+ */
+function openOtherDrawer(selector: string): boolean {
+  const dawn = document.querySelector('cart-drawer') as (HTMLElement & { open?: () => void }) | null;
+  if (dawn && typeof dawn.open === 'function') {
+    dawn.open();
+    return true;
+  }
+  let trigger: HTMLElement | null = null;
+  try {
+    trigger = selector ? document.querySelector<HTMLElement>(selector) : null;
+  } catch {
+    console.warn(`[SoBooster] Invalid cart drawer selector "${selector}"`);
+  }
+  trigger ??= document.querySelector<HTMLElement>('button[aria-controls*="cart" i]');
+  trigger?.click();
+  return trigger !== null;
+}
+
+/** Our instant-search overlay is a modal; close it so the drawer isn't hidden behind it. */
+function closeSearchOverlay() {
+  document.querySelector<HTMLDialogElement>('.sb-root--overlay dialog[open]')?.close();
+}
+
 /** Any other theme: set the number in its count element, if it has a plain one. */
 function updateCountElements(count: number) {
   document.querySelectorAll<HTMLElement>(COUNT_SELECTORS).forEach((element) => {
@@ -81,7 +129,7 @@ function updateCountElements(count: number) {
   });
 }
 
-export function createStoreServices({ rootUrl, cartUrl, afterAdd }: Options): StoreServices {
+export function createStoreServices({ rootUrl, cartUrl, cart: settings }: Options): StoreServices {
   const root = rootUrl.replace(/\/$/, '');
 
   return {
@@ -100,14 +148,18 @@ export function createStoreServices({ rootUrl, cartUrl, afterAdd }: Options): St
       const cart = await fetch(`${root}/cart.js`, { headers: { Accept: 'application/json' } })
         .then((r) => (r.ok ? (r.json() as Promise<AjaxCart>) : null))
         .catch(() => null);
+      const openDrawer = settings.afterAdd === 'drawer';
+      if (openDrawer) closeSearchOverlay();
+      let horizon = false;
       if (cart) {
-        dispatchStandardCartEvent(variantId, cart);
+        horizon = withHorizonAutoOpen(openDrawer, () => dispatchStandardCartEvent(variantId, cart));
         updateCountElements(cart.item_count);
       }
+      if (openDrawer && !horizon) openOtherDrawer(settings.drawerSelector);
       // Older themes and other apps listen for these.
       document.dispatchEvent(new CustomEvent('cart:refresh', { bubbles: true, detail: cart }));
       document.dispatchEvent(new CustomEvent('sobooster:cart:added', { detail: { variantId } }));
-      if (afterAdd === 'cart') window.location.assign(cartUrl);
+      if (settings.afterAdd === 'cart') window.location.assign(cartUrl);
     },
 
     async loadVariants(product: Product): Promise<VariantChoice[]> {

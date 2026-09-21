@@ -2,6 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_CONFIG, facetKeyFor, normalizeAppConfig } from './appConfig';
 
 describe('normalizeAppConfig', () => {
+  it('opens the cart drawer by default and keeps a valid after-add choice', () => {
+    expect(normalizeAppConfig({}).cart).toEqual({ afterAdd: 'drawer', drawerSelector: '' });
+    expect(normalizeAppConfig({ cart: { afterAdd: 'notify', drawerSelector: '  .cart-toggle ' } }).cart).toEqual({
+      afterAdd: 'notify',
+      drawerSelector: '.cart-toggle',
+    });
+    expect(normalizeAppConfig({ cart: { afterAdd: 'popup' } }).cart.afterAdd).toBe('drawer');
+  });
+
   it('returns the defaults for missing or garbage input', () => {
     expect(normalizeAppConfig(undefined)).toEqual(DEFAULT_CONFIG);
     expect(normalizeAppConfig('nope')).toEqual(DEFAULT_CONFIG);

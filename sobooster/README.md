@@ -24,7 +24,7 @@ Node 20+ and the Shopify CLI, with a dev store. Run everything from this
 cd sobooster
 npm install
 shopify app dev   # installs on the dev store and rebuilds the storefront script on save
-npm test          # 34 unit tests
+npm test          # 35 unit tests
 npm run build     # type-check + build admin and storefront script
 npm run deploy    # build, then shopify app deploy
 ```
@@ -135,7 +135,12 @@ How it fits together:
   `/products.json` on password-protected stores. They're cached in
   `sessionStorage` for 10 minutes; "Rebuild index" busts the cache.
 - Add to cart uses `/cart/add.js`. Products with several variants open a small
-  picker. The theme's cart count updates through the Section Rendering API.
+  picker. Afterwards the app tells the theme: it sends Shopify's standard
+  `shopify:cart:lines-update` event (Horizon), re-renders Dawn's cart icon and
+  drawer through the Section Rendering API, and updates plain count elements
+  elsewhere. By default it then opens the theme's cart drawer. Horizon and
+  Dawn-based themes work out of the box; for other themes the merchant enters
+  the cart icon's CSS selector in Settings.
 - Recommendations come from Shopify's Product Recommendations API, topped up
   with popular in-stock products.
 - The CSS is prefixed `sb-` and scoped under `.sb-root`, resets use `:where()`,

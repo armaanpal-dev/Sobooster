@@ -246,11 +246,20 @@ export function SettingsPage({ config, update }: PageProps) {
             label="After Add to cart"
             value={config.cart.afterAdd}
             options={[
+              { value: 'drawer', label: 'Open the cart drawer' },
               { value: 'notify', label: 'Stay on the page' },
               { value: 'cart', label: 'Go to the cart' },
             ]}
             onChange={(afterAdd) => setSection('cart', { afterAdd })}
           />
+          {config.cart.afterAdd === 'drawer' && (
+            <TextField
+              label="Cart drawer button (CSS selector)"
+              value={config.cart.drawerSelector}
+              help="Leave empty for Horizon, Dawn and Dawn-based themes. For other themes, the element that opens the cart drawer, e.g. .header__cart-toggle."
+              onChange={(drawerSelector) => setSection('cart', { drawerSelector })}
+            />
+          )}
         </div>
       </Card>
     </>

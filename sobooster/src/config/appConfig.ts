@@ -62,8 +62,10 @@ export interface LayoutSettings {
 }
 
 export interface CartSettings {
-  /** What happens after Add to cart: a notification, or go straight to the cart page. */
-  afterAdd: 'notify' | 'cart';
+  /** After Add to cart: open the theme's cart drawer, stay on the page, or go to the cart page. */
+  afterAdd: 'drawer' | 'notify' | 'cart';
+  /** Themes the app doesn't know: the element that opens their cart drawer, clicked after an add. */
+  drawerSelector: string;
 }
 
 export interface AppConfig {
@@ -116,7 +118,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   },
   search: { suggestions: true, showPages: true, suggestionProducts: 5, recentSearches: true, recommendations: true, recommendationCount: 4 },
   layout: { productsPerPage: 24, defaultSort: 'featured' },
-  cart: { afterAdd: 'notify' },
+  cart: { afterAdd: 'drawer', drawerSelector: '' },
 };
 
 /** URL parameters the app or Shopify already use; facet keys must avoid them. */
@@ -239,7 +241,10 @@ export function normalizeAppConfig(raw: unknown): AppConfig {
       productsPerPage: int(layout.productsPerPage, d.layout.productsPerPage, 8, 96),
       defaultSort: oneOf(layout.defaultSort, SORT_KEYS, d.layout.defaultSort),
     },
-    cart: { afterAdd: oneOf(cart.afterAdd, ['notify', 'cart'] as const, d.cart.afterAdd) },
+    cart: {
+      afterAdd: oneOf(cart.afterAdd, ['drawer', 'notify', 'cart'] as const, d.cart.afterAdd),
+      drawerSelector: str(cart.drawerSelector, d.cart.drawerSelector, 200).trim(),
+    },
   };
 }
 

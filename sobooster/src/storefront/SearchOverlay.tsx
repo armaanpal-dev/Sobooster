@@ -35,7 +35,7 @@ export function SearchOverlay({ config }: { config: StorefrontConfig }) {
   const [recent, setRecent] = useState<string[]>(() => (config.app.search.recentSearches ? readRecentSearches() : []));
 
   const services = useMemo(
-    () => createStoreServices({ rootUrl: config.rootUrl, cartUrl: config.cartUrl, afterAdd: config.app.cart.afterAdd }),
+    () => createStoreServices({ rootUrl: config.rootUrl, cartUrl: config.cartUrl, cart: config.app.cart }),
     [config],
   );
   const searchUrl = `${config.rootUrl.replace(/\/$/, '')}/search`;
