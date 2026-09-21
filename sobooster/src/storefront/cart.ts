@@ -4,7 +4,7 @@ import type { Product } from '../types';
 /**
  * Storefront services over Shopify's Ajax APIs: same origin, no token, and
  * they work on password-protected stores once the visitor is in.
- * - Cart:            POST /cart/add.js
+ * - Cart:            POST /cart/add.js, then GET /cart.js for the new count
  * - Variants:        GET  /products/{handle}.js
  * - Recommendations: GET  /recommendations/products.json
  * - Pages:           GET  /search/suggest.json (predictive search: pages, articles)
@@ -15,17 +15,70 @@ interface Options {
   afterAdd: 'notify' | 'cart';
 }
 
-/** Theme sections that commonly show the cart count, refreshed in the same request (Section Rendering API). */
-const CART_SECTIONS = ['cart-icon-bubble', 'cart-notification-button', 'header'];
+/**
+ * Dawn-family sections refreshed in the same request (Section Rendering API):
+ * the header cart count and the cart drawer's contents.
+ */
+const CART_SECTIONS = ['cart-icon-bubble', 'cart-drawer'];
 
-function refreshCartSections(sections: Record<string, string | null> | undefined) {
-  if (!sections) return;
-  const html = sections['cart-icon-bubble'];
+/** Common cart-count elements in other themes; only text-only elements are touched. */
+const COUNT_SELECTORS = '[data-cart-count], .cart-count, .cart__count, .header__cart-count, .cart-link__bubble-num, .js-cart-count';
+
+interface AjaxCart {
+  token: string;
+  item_count: number;
+  items: { key: string; quantity: number }[];
+}
+
+const innerOf = (html: string, selector: string) =>
+  new DOMParser().parseFromString(html, 'text/html').querySelector(selector)?.innerHTML;
+
+/** Dawn and its forks: swap in the re-rendered cart icon and drawer. */
+function refreshDawnSections(sections: Record<string, string | null> | undefined) {
+  const bubbleHtml = sections?.['cart-icon-bubble'];
   const bubble = document.getElementById('cart-icon-bubble');
-  if (html && bubble) {
-    const fresh = new DOMParser().parseFromString(html, 'text/html').querySelector('.shopify-section');
-    if (fresh) bubble.innerHTML = fresh.innerHTML;
+  if (bubbleHtml && bubble) {
+    const inner = innerOf(bubbleHtml, '.shopify-section');
+    if (inner !== undefined) bubble.innerHTML = inner;
   }
+
+  const drawerHtml = sections?.['cart-drawer'];
+  const drawer = document.getElementById('CartDrawer');
+  if (drawerHtml && drawer) {
+    const inner = innerOf(drawerHtml, '#CartDrawer');
+    if (inner !== undefined) drawer.innerHTML = inner;
+    document.querySelector('cart-drawer')?.classList.remove('is-empty');
+  }
+}
+
+/**
+ * Shopify's standard storefront event, which Horizon and newer themes listen
+ * for to update the cart icon and re-render the cart drawer. Built by hand to
+ * match https://cdn.shopify.com/storefront/standard-events.js, so there is no
+ * dependency on that module being loaded.
+ */
+function dispatchStandardCartEvent(variantId: number, cart: AjaxCart) {
+  const event = new Event('shopify:cart:lines-update', { bubbles: true, cancelable: true });
+  Object.assign(event, {
+    action: 'add',
+    lines: [{ merchandiseId: `gid://shopify/ProductVariant/${variantId}`, quantity: 1 }],
+    promise: Promise.resolve({
+      cart: {
+        id: `gid://shopify/Cart/${cart.token}`,
+        totalQuantity: cart.item_count,
+        lines: cart.items.map((item) => ({ id: item.key, quantity: item.quantity })),
+      },
+      detail: { itemCount: cart.item_count },
+    }),
+  });
+  document.dispatchEvent(event);
+}
+
+/** Any other theme: set the number in its count element, if it has a plain one. */
+function updateCountElements(count: number) {
+  document.querySelectorAll<HTMLElement>(COUNT_SELECTORS).forEach((element) => {
+    if (element.children.length === 0) element.textContent = String(count);
+  });
 }
 
 export function createStoreServices({ rootUrl, cartUrl, afterAdd }: Options): StoreServices {
@@ -43,9 +96,16 @@ export function createStoreServices({ rootUrl, cartUrl, afterAdd }: Options): St
       const body = (await response.json().catch(() => ({}))) as { description?: string; sections?: Record<string, string | null> };
       if (!response.ok) throw new Error(body.description ?? 'Could not add to cart');
 
-      refreshCartSections(body.sections);
-      // Let the theme and other apps react (many themes listen for one of these).
-      document.dispatchEvent(new CustomEvent('cart:refresh', { bubbles: true }));
+      refreshDawnSections(body.sections);
+      const cart = await fetch(`${root}/cart.js`, { headers: { Accept: 'application/json' } })
+        .then((r) => (r.ok ? (r.json() as Promise<AjaxCart>) : null))
+        .catch(() => null);
+      if (cart) {
+        dispatchStandardCartEvent(variantId, cart);
+        updateCountElements(cart.item_count);
+      }
+      // Older themes and other apps listen for these.
+      document.dispatchEvent(new CustomEvent('cart:refresh', { bubbles: true, detail: cart }));
       document.dispatchEvent(new CustomEvent('sobooster:cart:added', { detail: { variantId } }));
       if (afterAdd === 'cart') window.location.assign(cartUrl);
     },

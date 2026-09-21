@@ -16,9 +16,12 @@ stores. The last section covers what I'd change for a 150,000-product store.
 
 ## Running it
 
-Node 20+ and the Shopify CLI, with a dev store.
+Node 20+ and the Shopify CLI, with a dev store. Run everything from this
+`sobooster/` folder, not the repository root, or the CLI won't find
+`shopify.app.toml`.
 
 ```bash
+cd sobooster
 npm install
 shopify app dev   # installs on the dev store and rebuilds the storefront script on save
 npm test          # 34 unit tests
